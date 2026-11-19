@@ -180,7 +180,7 @@ Open `.env` in an editor and configure:
 | `LDAP_GID` | For MLO: `83070` | `83070` |
 | `RUNAI_PROJECT` | Your project | `mlo-<username>` |
 | `K8S_NAMESPACE` | Your namespace | `runai-mlo-<username>` |
-| `RUNAI_IMAGE` | Docker image | `ic-registry.epfl.ch/mlo/mlo-base:uv1` |
+| `RUNAI_IMAGE` | Docker image (use `mlo-base:uv1` for V100, see [GPU Selection](docs/managing_workflows.md#gpu-selection)) | `ic-registry.epfl.ch/mlo/mlo-base:uv2` |
 | `RUNAI_SECRET_NAME` | Secret name | `runai-mlo-<username>-env` |
 | `WORKING_DIR` | Working directory | `/mloscratch/homes/<username>` |
 

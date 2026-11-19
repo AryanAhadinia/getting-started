@@ -30,7 +30,7 @@ kubectl create secret generic my-secret --from-literal=key1=supersecret
 
 ```bash
 runai submit --name demo-secret \
-  --image ic-registry.epfl.ch/mlo/mlo-base:uv1 \
+  --image ic-registry.epfl.ch/mlo/mlo-base:uv2 \
   --pvc mlo-scratch:/mloscratch \
   --environment WANDB_API_KEY=SECRET:my-secret,key1 \
   -- /bin/bash -ic "sleep infinity"
@@ -57,7 +57,7 @@ You can reference multiple secrets:
 
 ```bash
 runai submit --name multi-secret \
-  --image ic-registry.epfl.ch/mlo/mlo-base:uv1 \
+  --image ic-registry.epfl.ch/mlo/mlo-base:uv2 \
   --environment WANDB_API_KEY=SECRET:my-secret,wandb_key \
   --environment HF_TOKEN=SECRET:my-secret,hf_token \
   --environment CUSTOM_VAR=SECRET:other-secret,custom_key \

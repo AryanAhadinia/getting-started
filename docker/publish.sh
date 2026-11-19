@@ -4,7 +4,7 @@ set -euo pipefail
 
 REGISTRY="${REGISTRY:-ic-registry.epfl.ch}"
 IMAGE_PATH="${IMAGE_PATH:-mlo/mlo-base}"
-TAG="${TAG:-uv1}"
+TAG="${TAG:-uv2}"
 LDAP_USERNAME="${LDAP_USERNAME:-you}" # TODO: Replace with your EPFL username
 LDAP_UID=${LDAP_UID:-00000} # TODO: Replace with your LDAP UID (find it with: id -u)
 LDAP_GROUPNAME="${LDAP_GROUPNAME:-MLO-unit}"
