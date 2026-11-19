@@ -95,7 +95,7 @@ When choosing GPU types on the RCP cluster, consider both **cost** and **memory/
 
 | GPU Type | Memory | Best For | Cost |
 |----------|--------|----------|------|
-| **V100** | 40GB | Older hardware, not memory-intensive | Lower cost, faster to schedule |
+| **V100** | 32GB | Older hardware, not memory-intensive | Lower cost, faster to schedule |
 | **A100-40GB** | 40GB | Most use cases (default) | Moderate |
 | **A100-80GB** | 80GB | Standard memory-intensive workloads | Moderate |
 | **H100** | 80GB | High compute requirements | Higher cost |
