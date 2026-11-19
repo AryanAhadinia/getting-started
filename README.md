@@ -180,7 +180,7 @@ Open `.env` in an editor and configure:
 | `LDAP_GID` | For MLO: `83070` | `83070` |
 | `RUNAI_PROJECT` | Your project | `mlo-<username>` |
 | `K8S_NAMESPACE` | Your namespace | `runai-mlo-<username>` |
-| `RUNAI_IMAGE` | Docker image | `ic-registry.epfl.ch/mlo/mlo-base:uv1` |
+| `RUNAI_IMAGE` | Docker image (use `mlo-base:uv1` for V100, see [GPU Selection](docs/managing_workflows.md#gpu-selection)) | `ic-registry.epfl.ch/mlo/mlo-base:uv2` |
 | `RUNAI_SECRET_NAME` | Secret name | `runai-mlo-<username>-env` |
 | `WORKING_DIR` | Working directory | `/mloscratch/homes/<username>` |
 
@@ -375,6 +375,8 @@ python csub.py -n test --dry --command "..."
 | `--large-shm` | Request larger `/dev/shm` | False |
 | `--host-ipc` | Share host IPC namespace | False |
 | `--backofflimit` | Retries before marking training job failed | `0` |
+| `--workers` | Extra pods for a multi-node job (total pods = workers + 1); see [`docs/multinode.md`](docs/multinode.md) | `0` |
+| `--no-rdma` | Multi-node jobs: don't request RDMA, communicate over TCP. Implied on pools without RDMA (`b300`, `a100-40g`, `v100`) | False |
 
 Pool names are passed directly to run:ai, so newly added pools work without updating `csub.py`.
 Use the exact names configured on the cluster; run:ai validates their availability and your access.
@@ -396,7 +398,7 @@ Interactive jobs targeting `b300`, `h200`, or `h100` are submitted as preemptibl
 | `--uid` | Override `LDAP_UID` from `.env` |
 | `--gid` | Override `LDAP_GID` from `.env` |
 | `--pvc` | Override `SCRATCH_PVC` from `.env` |
-| `--dry` | Print command without executing |
+| `--dry` | Print command without syncing the secret or executing |
 
 ### After Submission
 

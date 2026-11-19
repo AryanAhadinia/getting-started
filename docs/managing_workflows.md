@@ -95,7 +95,7 @@ When choosing GPU types on the RCP cluster, consider both **cost** and **memory/
 
 | GPU Type | Memory | Best For | Cost |
 |----------|--------|----------|------|
-| **V100** | 40GB | Older hardware, not memory-intensive | Lower cost, faster to schedule |
+| **V100** | 32GB | Older hardware, not memory-intensive | Lower cost, faster to schedule |
 | **A100-40GB** | 40GB | Most use cases (default) | Moderate |
 | **A100-80GB** | 80GB | Standard memory-intensive workloads | Moderate |
 | **H100** | 80GB | High compute requirements | Higher cost |
@@ -106,6 +106,13 @@ When choosing GPU types on the RCP cluster, consider both **cost** and **memory/
 - With CLI directly: Use `--node-pools` flag
 
 **Pool names:** Any pool configured on the cluster is supported, including `b300`, `h200`, `h100`, `default` (A100), `a100-40g`, and `v100`. Names are passed directly to run:ai for validation; omit `--node-type` to use the platform default. Interactive jobs targeting `b300`, `h200`, or `h100` are preemptible.
+
+> [!WARNING]
+> **Pick the image that matches the GPU.**
+> - `mlo-base:uv2` (default; NGC PyTorch 25.11: CUDA 13.0, PyTorch 2.10) runs on **A100, H100, H200 and B300**, but not on V100: NVIDIA's PyTorch images no longer include V100 (`sm_70`) kernels, so V100 jobs fail with `no kernel image is available for execution on the device`.
+> - `mlo-base:uv1` (NGC 24.02: CUDA 12.3, PyTorch 2.3) runs on **V100, A100, H100 and H200**, but not properly on B300: it warns `sm_103 is not compatible with the current PyTorch installation`, matmuls fall back to slow JIT-compiled PTX, and `torch.compile` fails.
+>
+> For V100 jobs, pass `-i ic-registry.epfl.ch/mlo/mlo-base:uv1`. If your project installs its own PyTorch in a `uv` venv, the same applies to that build: check `python -c "import torch; print(torch.cuda.get_arch_list())"` for your GPU (`sm_70` V100, `sm_80` A100, `sm_90` H100/H200, `sm_100` B300).
 
 > [!TIP]
 > If you plan to run a series of jobs, especially with high-end GPUs like H100/H200, inform your supervisor in advance.

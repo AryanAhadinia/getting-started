@@ -1,5 +1,10 @@
-# CUDA/PyTorch base image that matches EPFL GPUs
-FROM --platform=linux/amd64 nvcr.io/nvidia/pytorch:24.02-py3
+# CUDA/PyTorch base image that matches EPFL GPUs.
+# 25.11 = CUDA 13.0 (native on the RCP nodes' R580 driver), PyTorch 2.10, kernels for
+# sm_75, sm_80, sm_86, sm_90, sm_100, sm_120: A100, H100, H200 and B300 (sm_103 runs the
+# sm_100 kernels). NGC images from 25.01 on have no V100 (sm_70) kernels, so V100 jobs
+# keep using the previous image, mlo-base:uv1 (built from 24.02).
+ARG BASE_IMAGE=nvcr.io/nvidia/pytorch:25.11-py3
+FROM --platform=linux/amd64 ${BASE_IMAGE}
 LABEL maintainer="Alexander Haegele <alexander.hagele@epfl.ch>"
 
 # Allow non-interactive apt installs (no tz prompts)
@@ -43,6 +48,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Generate UTF-8 locale for Python + shells
 RUN locale-gen en_US.UTF-8
+
+# Ubuntu 24.04-based NGC images (25.x+) ship an 'ubuntu' user and group at 1000,
+# which collides with the placeholder account below
+RUN if id -u ubuntu >/dev/null 2>&1; then userdel -r ubuntu; fi
 
 # Placeholder LDAP-like account; entrypoint will later mutate UID/GID
 RUN groupadd -g ${LDAP_GID} ${LDAP_GROUPNAME} && \

@@ -23,9 +23,14 @@ runai submit-dist pytorch \
     --extended-resource rdma/rdma=1 \
     -- bash -c "sleep infinity" 
 
-# with csub.py, which takes care of the --annotation and --extended-resource flags
-python csub.py -n distributed-job --distributed --workers=1 -g 4
+# with csub.py: --workers makes it a distributed job, and csub adds the RDMA flags where the pool supports them
+python csub.py -n distributed-job --workers=1 -g 4
 ```
+
+> [!IMPORTANT]
+> **RDMA is only available on the `default` (A100), `h100` and `h200` pools** ([RCP wiki](https://wiki.rcp.epfl.ch/en/home/CaaS/FAQ/how-to-run-distributed-jobs): "b300 nodes will also be compatible with RoCE/RDMA but not for the moment"). Requesting it elsewhere breaks the job: on `v100` and `a100-40g` it stays Pending (no `rdma/rdma` resource), and on `b300` the pods stay in `ContainerCreating` (`error adding container to network "vlan1001": Link not found`).
+>
+> So for `--workers` jobs, `csub.py` adds `--annotation k8s.v1.cni.cncf.io/networks=kube-system/roce --extended-resource rdma/rdma=1` only when every `--node-type` pool has RDMA (or no pool is given). Otherwise, or with `--no-rdma`, NCCL communicates over TCP. csub then adds `--large-shm` (NCCL's socket transport needs more than the default `/dev/shm` with several GPUs per pod) and `NCCL_SOCKET_NTHREADS=4 NCCL_NSOCKS_PERTHREAD=4`, which roughly doubled all-reduce bandwidth between two B300 nodes (3.3–3.8 → 7.2–8.4 GB/s). TCP is still far slower than within a node (~480 GB/s between two B300s over NVLink), so on these pools prefer a single 8-GPU node when the model fits.
 Note that it is not possible to control how these pods are scheduled so these two pods can be either on the same node or on different nodes. For best performance, local GPUs should be maximized, which would mean asking for pods of 8 GPUs each (taking a full node). You can open a bash on a specific pod with `runai bash job_name --pod pod_name`. You can list pods with `kubectl get pods`.
 
 RunAI handles scheduling the pods and also creates the necessary communication (rendezvous) backend (most likely c10d) between them. The following environment variables are set:
@@ -69,7 +74,7 @@ export NCCL_NSOCKS_PERTHREAD=$RUNAI_NUM_OF_GPUS
 
 ---
 
-While the previous section should get a job running, additional setup is necessary for efficient communication, in particular, using RDMA. We have already specified the following flags when running our pods to ensure RDMA support (this is done automatically with `cusb.py`):
+While the previous section should get a job running, additional setup is necessary for efficient communication, in particular, using RDMA. We have already specified the following flags when running our pods to ensure RDMA support (`csub.py` does this automatically on pools with RDMA):
 ```--annotation k8s.v1.cni.cncf.io/networks=kube-system/roce --extended-resource rdma/rdma=1```.
 
 However, the communication backend requires additional configuration to use RDMA. In particular, the following steps are needed when using NCCL. The necessary steps may vary for different OS distributions or versions as well as when alternative drivers for Inifiniband/RDMA are installed.
@@ -216,5 +221,5 @@ if __name__ == "__main__":
 
 Finally, you can start the job with:
 ```
-python csub.py -n distributed-job --distributed --workers 1 -g 4 --large_shm -c "./mloscratch/homes/<path to script>/multi_node_training.sh 2>&1 | tee out.log"
+python csub.py -n distributed-job --workers 1 -g 4 --large-shm -c "./mloscratch/homes/<path to script>/multi_node_training.sh 2>&1 | tee out.log"
 ```

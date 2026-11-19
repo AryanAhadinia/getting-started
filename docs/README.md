@@ -36,7 +36,7 @@ The Docker image (`docker/Dockerfile`) follows the RCP template:
 
 | Component | Details |
 |-----------|---------|
-| **Base image** | `nvcr.io/nvidia/pytorch:24.02-py3` (CUDA 12, PyTorch pre-installed) |
+| **Base image** | `nvcr.io/nvidia/pytorch:25.11-py3` (CUDA 13.0, PyTorch 2.10, Ubuntu 24.04, Python 3.12). Override with `--build-arg BASE_IMAGE=...` |
 | **System packages** | Build tools, git, zsh, ssh client, tmux, etc. |
 | **Python manager** | [uv](https://github.com/astral-sh/uv) installed system-wide at `/usr/local/bin/uv` |
 | **Entrypoint** | Custom bootstrap script at `docker/entrypoint.sh` |
@@ -252,11 +252,13 @@ Both are on scratch, so environments **survive across pods** while keeping the p
 
 ### Default Image
 
-The provided image should work for most workflows:
+The provided image should work for most workflows on A100, H100, H200 and B300:
 
 ```
-ic-registry.epfl.ch/mlo/mlo-base:uv1
+ic-registry.epfl.ch/mlo/mlo-base:uv2
 ```
+
+It does not run on V100 (NGC PyTorch images dropped `sm_70` kernels in 25.01). For V100 jobs, use the previous image, `ic-registry.epfl.ch/mlo/mlo-base:uv1` (NGC 24.02, CUDA 12.3, PyTorch 2.3), which in turn does not support B300. See [GPU Selection](managing_workflows.md#gpu-selection).
 
 ### Building Custom Images
 
