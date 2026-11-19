@@ -50,7 +50,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("-p", "--port", type=int, help="Expose a container port")
     parser.add_argument("--train", action="store_true", help="Submit as a training workload")
     parser.add_argument("--workers", default=0, type=int, help="Number of nodes IN ADDITION to the master node. I.e., the total number of nodes is the number of workers + 1 (the master node)")
-    parser.add_argument("--dry", action="store_true", help="Print the generated runai command")
+    parser.add_argument("--dry", action="store_true", help="Print the generated runai command without syncing the secret or submitting")
     parser.add_argument("--env-file", type=str, default=DEFAULT_ENV_FILE, help="Path to the .env file (default: .env in the repo root)")
     parser.add_argument("--sync-secret-only", action="store_true", help="Create/refresh the Kubernetes secret and exit without submitting a job")
     parser.add_argument("--skip-secret-sync", action="store_true", help="Do not (re)create the Kubernetes secret before submission")
@@ -229,7 +229,15 @@ def main() -> None:
     if not namespace:
         sys.exit("K8S_NAMESPACE or RUNAI_PROJECT must be defined in the env file.")
 
-    if args.sync_secret_only or not args.skip_secret_sync:
+    sync_requested = args.sync_secret_only or not args.skip_secret_sync
+    if args.dry:
+        # A dry run must not touch the cluster: syncing re-applies the whole
+        # .env and can blank or drop keys that only the cluster secret holds.
+        if sync_requested:
+            print(f"[dry] Not syncing secret {secret_name} in namespace {namespace}.", file=sys.stderr)
+        if args.sync_secret_only:
+            return
+    elif sync_requested:
         with rendered_env_file(env) as rendered_path:
             ensure_secret(rendered_path, namespace, secret_name)
         if args.sync_secret_only:

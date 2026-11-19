@@ -396,7 +396,7 @@ Interactive jobs targeting `b300`, `h200`, or `h100` are submitted as preemptibl
 | `--uid` | Override `LDAP_UID` from `.env` |
 | `--gid` | Override `LDAP_GID` from `.env` |
 | `--pvc` | Override `SCRATCH_PVC` from `.env` |
-| `--dry` | Print command without executing |
+| `--dry` | Print command without syncing the secret or executing |
 
 ### After Submission
 
