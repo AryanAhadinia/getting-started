@@ -375,6 +375,8 @@ python csub.py -n test --dry --command "..."
 | `--large-shm` | Request larger `/dev/shm` | False |
 | `--host-ipc` | Share host IPC namespace | False |
 | `--backofflimit` | Retries before marking training job failed | `0` |
+| `--workers` | Extra pods for a multi-node job (total pods = workers + 1); see [`docs/multinode.md`](docs/multinode.md) | `0` |
+| `--no-rdma` | Multi-node jobs: don't request RDMA, communicate over TCP. Implied on pools without RDMA (`b300`, `a100-40g`, `v100`) | False |
 
 Pool names are passed directly to run:ai, so newly added pools work without updating `csub.py`.
 Use the exact names configured on the cluster; run:ai validates their availability and your access.

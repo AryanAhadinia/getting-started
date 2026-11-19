@@ -32,6 +32,15 @@ from utils import (
     add_secret_env_flags,
 )
 
+# Node pools whose nodes have RDMA devices (rdma/rdma) and the kube-system/roce network,
+# per the RCP wiki ("How to run distributed jobs"). Requesting them elsewhere breaks
+# distributed jobs: v100 and a100-40g have no rdma/rdma resource (the job stays Pending)
+# and b300 nodes lack the RoCE VLAN (pods stay in ContainerCreating). Update this set
+# when RCP enables RDMA on more pools.
+RDMA_NODE_POOLS = {"default", "h100", "h200"}
+ROCE_ANNOTATION = "k8s.v1.cni.cncf.io/networks=kube-system/roce"
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Wrapper around runai submit that keeps configuration in a .env file."
@@ -67,6 +76,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--host-ipc", action="store_true", help="Share the host IPC namespace")
     parser.add_argument("--large-shm", action="store_true", help="Request a larger /dev/shm")
+    parser.add_argument(
+        "--no-rdma", action="store_true",
+        help="Distributed jobs: do not request RDMA/RoCE, so NCCL communicates over TCP. Implied when "
+             f"--node-type includes a pool without RDMA ({', '.join(sorted(RDMA_NODE_POOLS))} have it).",
+    )
     return parser
 
 
@@ -185,11 +199,28 @@ def build_runai_command(
             cmd.append("--preemptible")
             
     if distributed:
-        cmd.extend([
-            "--workers", str(args.workers),
-            "--annotation", "k8s.v1.cni.cncf.io/networks=kube-system/roce", 
-            "--extended-resource", "rdma/rdma=1"
-        ])
+        cmd.extend(["--workers", str(args.workers)])
+        # No --node-type means the default (A100) pool, which has RDMA.
+        pools_without_rdma = [p for p in args.node_type if p not in RDMA_NODE_POOLS]
+        if args.no_rdma or pools_without_rdma:
+            if pools_without_rdma and not args.no_rdma:
+                print(
+                    f"[csub] Pool(s) without RDMA: {', '.join(pools_without_rdma)}. "
+                    "Submitting without RDMA; NCCL will communicate over TCP.",
+                    file=sys.stderr,
+                )
+            # NCCL's socket transport stages data in /dev/shm, which is too small by default
+            # for several GPUs per pod ("No space left on device").
+            if not args.large_shm:
+                cmd.append("--large-shm")
+            # More sockets per connection: ~2x all-reduce bandwidth between two B300 nodes
+            # (7.2-8.4 vs 3.3-3.8 GB/s). Overridable with `export` in the job command.
+            add_env_flags(cmd, {"NCCL_SOCKET_NTHREADS": "4", "NCCL_NSOCKS_PERTHREAD": "4"})
+        else:
+            cmd.extend([
+                "--annotation", ROCE_ANNOTATION,
+                "--extended-resource", "rdma/rdma=1",
+            ])
 
     add_env_flags(cmd, literal_env)
     add_secret_env_flags(
